@@ -3,6 +3,7 @@ using System.Windows.Media;
 using System.Windows.Input;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using static System.Math;
 
 namespace A25;
 
@@ -40,25 +41,27 @@ class MyWindow : Window {
       try {
          mBmp.Lock ();
          mBase = mBmp.BackBuffer;
-         int dx = Math.Abs (x2 - x1), dy = -Math.Abs (y2 - y1);
+         int dx = Abs (x2 - x1), dy = Abs (y2 - y1);
          int stepX = x1 < x2 ? 1 : -1, stepY = y1 < y2 ? 1 : -1;
+         var rect = new Int32Rect (stepX > 0 ? x1 : x2, stepY > 0 ? y1 : y2, dx + 1, dy + 1);
+         dy = -dy;
          int err = dx + dy;
          while (true) {
             SetPixel (x1, y1, 255);
             if (x1 == x2 && y1 == y2) break;
-            int slopeErr = 2 * err;
-            if (slopeErr >= dy) {
+            int delta = 2 * err;
+            if (delta >= dy) {
                if (x1 == x2) break;
                err += dy;
                x1 += stepX;
             }
-            if (slopeErr <= dx) {
+            if (delta <= dx) {
                if (y1 == y2) break;
                err += dx;
                y1 += stepY;
             }
          }
-         mBmp.AddDirtyRect (new Int32Rect (0, 0, mBmp.PixelWidth, mBmp.PixelHeight));
+         mBmp.AddDirtyRect (rect);
       } finally {
          mBmp.Unlock ();
       }
