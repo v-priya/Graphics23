@@ -10,7 +10,7 @@ class MyWindow : Window {
    public MyWindow () {
       Width = 800; Height = 600;
       Left = 50; Top = 50;
-      WindowStyle = WindowStyle.None;
+      WindowStyle = WindowStyle.ToolWindow;
       Image image = new Image () {
          Stretch = Stretch.None,
          HorizontalAlignment = HorizontalAlignment.Left,
@@ -24,8 +24,44 @@ class MyWindow : Window {
       mStride = mBmp.BackBufferStride;
       image.Source = mBmp;
       Content = image;
+      image.MouseDown += OnMouseDown;
+   }
 
-      DrawMandelbrot (-0.5, 0, 1);
+   void OnMouseDown (object sender, MouseButtonEventArgs e) {
+      var pos = e.GetPosition (this);
+      mStart = mEnd == Zero ? pos : mEnd;
+      mEnd = pos;
+      DrawLine ((int)mStart.X, (int)mStart.Y, (int)mEnd.X, (int)mEnd.Y);
+   }
+   Point mStart = new (), mEnd = Zero;
+   static Point Zero = new (0, 0);
+
+   void DrawLine (int x1, int y1, int x2, int y2) {
+      try {
+         mBmp.Lock ();
+         mBase = mBmp.BackBuffer;
+         int dx = Math.Abs (x2 - x1), dy = -Math.Abs (y2 - y1);
+         int stepX = x1 < x2 ? 1 : -1, stepY = y1 < y2 ? 1 : -1;
+         int err = dx + dy;
+         while (true) {
+            SetPixel (x1, y1, 255);
+            if (x1 == x2 && y1 == y2) break;
+            int slopeErr = 2 * err;
+            if (slopeErr >= dy) {
+               if (x1 == x2) break;
+               err += dy;
+               x1 += stepX;
+            }
+            if (slopeErr <= dx) {
+               if (y1 == y2) break;
+               err += dx;
+               y1 += stepY;
+            }
+         }
+         mBmp.AddDirtyRect (new Int32Rect (0, 0, mBmp.PixelWidth, mBmp.PixelHeight));
+      } finally {
+         mBmp.Unlock ();
+      }
    }
 
    void DrawMandelbrot (double xc, double yc, double zoom) {
