@@ -136,12 +136,12 @@ class GrayBMP {
       double r = width / 2;   // Length of the cap sides
 
       // For each of the line coordinates, find the half hexagon cap points
-      foreach (var p in new[] { a, b }) {
+      for (int i = 0; i < 2; i++) {
          // Get the start angle for the line coordinates
          // start angle = theta + PI/2 for the one end and theta - PI/2 for the other end
-         double angle = p == b ? theta - HALFPI : theta + HALFPI;
+         var (p, angle) = i == 0 ? (a, theta + HALFPI) : (b, theta - HALFPI);
          // Get the four points needed to draw a half hexagon.
-         for (int i = 0; i < 4; i++, angle += ONETHIRDPI)
+         for (int j = 0; j < 4; j++, angle += ONETHIRDPI)
             mPoints.Add (p.RadialMove (r, angle).Round ());
       }
       // Add the lines to the polygon to fill
