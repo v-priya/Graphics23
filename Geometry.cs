@@ -23,6 +23,9 @@ readonly struct Complex {
 /// <summary>A point in 2D space, with double-precision coordinates (X, Y)</summary>
 readonly record struct Point2 (double X, double Y) {
    public (int X, int Y) Round () => ((int)(X + 0.5), (int)(Y + 0.5));
+   /// <summary>Does a polar move given a particular radius and theta and returns the
+   /// moved point coordinates</summary>
+   public readonly Point2 RadialMove (double r, double theta) => new (X + r * Math.Cos (theta), Y + r * Math.Sin (theta));
 }
 
 /// <summary>A Line in 2 dimensions (A -> B)</summary>

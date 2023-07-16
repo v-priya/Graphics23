@@ -125,6 +125,36 @@ class GrayBMP {
       }
       End ();
    }
+         
+   /// <summary>Draws a closed polygon with 8 sides around the line with half hexagonal end caps,
+   /// the height of the polygon being the line width.</summary>
+   public void DrawThickLine (int x1, int y1, int x2, int y2, int width, int color) {
+      mPF.Reset (); mPoints.Clear ();
+      Point2 a = new (x1, y1), b = new (x2, y2);
+      // Get the angle between the x-axis and the line
+      var theta = Atan2 (b.Y - a.Y, b.X - a.X);
+      double r = width / 2;   // Length of the cap sides
+
+      // For each of the line coordinates, find the half hexagon cap points
+      foreach (var p in new[] { a, b }) {
+         // Get the start angle for the line coordinates
+         // start angle = theta + PI/2 for the one end and theta - PI/2 for the other end
+         double angle = p == b ? theta - HALFPI : theta + HALFPI;
+         // Get the four points needed to draw a half hexagon.
+         for (int i = 0; i < 4; i++, angle += ONETHIRDPI)
+            mPoints.Add (p.RadialMove (r, angle).Round ());
+      }
+      // Add the lines to the polygon to fill
+      for (int i = 0; i < mPoints.Count; i++) {
+         (int X, int Y) pt = mPoints[i], pt2 = mPoints[(i + 1) % 8];
+         mPF.AddLine (pt.X, pt.Y, pt2.X, pt2.Y);
+      }
+      mPF.Fill (this, color);
+   }
+   PolyFillFast mPF = new ();
+   List<(int X, int Y)> mPoints = new ();
+   const double HALFPI = PI / 2, ONETHIRDPI = PI / 3;
+
 
    /// <summary>Call End after finishing the update of the bitmap</summary>
    public void End () {
