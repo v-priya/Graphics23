@@ -25,6 +25,8 @@ readonly record struct Point2 (double X, double Y) {
 
    public static Vector2 operator - (Point2 a, Point2 b) => new (a.X - b.X, a.Y - b.Y);
    public static Point2 operator + (Point2 p, Vector2 v) => new (p.X + v.X, p.Y + v.Y);
+   /// <summary>Determines whether the points are counter-clockwise (> 0), clockwise (< 0), and collinear if 0</summary>
+   public bool IsCCW (Point2 a, Point2 b) => (a.X - X) * (b.Y - Y) - (a.Y - Y) * (b.X - X) > 0;
 }
 
 /// <summary>A Vector2 in 2D space</summary>
@@ -130,7 +132,33 @@ class Polygon {
 class Drawing {
    public void Add (Polygon poly) {
       mPolys.Add (poly);
-      mBound = new (); 
+      mBound = new ();
+      mPoints.Clear ();
+      mPoints.AddRange (mHPoints);  // Add existing hull points
+      mPoints.AddRange (poly.Pts);  // Add new polygon points to the existing hull
+      mHPoints = ComputeHull (mPoints);   // Compute new hull with existing hull and new polygon points
+   }
+
+   public IReadOnlyList<Point2> ConvexHull => mHPoints;
+   List<Point2> mHPoints = new (), mPoints = new ();
+
+   /// <summary>Computes the convex hull given a list of points</summary>
+   List<Point2> ComputeHull (List<Point2> points) {
+      List<Point2> U = new (), L = new ();
+      // Sort the points by X, if same then by Y
+      points.Sort ((a, b) => a.X == b.X ? a.Y.CompareTo (b.Y) : (a.X > b.X ? 1 : -1));
+      for (int i = 0; i < points.Count; i++) {
+         var a = points[i]; var b = points[^(i + 1)];
+         // Calculate the lower bound
+         while (L.Count >= 2 && !a.IsCCW (L[^1], L[^2])) L.RemoveAt (L.Count - 1);
+         L.Add (a);
+
+         // Calculate the upper bound
+         while (U.Count >= 2 && !b.IsCCW (U[^1], U[^2])) U.RemoveAt (U.Count - 1);
+         U.Add (b);
+      }
+      L.RemoveAt (L.Count - 1); L.AddRange (U);
+      return L;
    }
 
    public IReadOnlyList<Polygon> Polys => mPolys;
@@ -150,10 +178,21 @@ class Drawing {
    }
    Bound2 mBound;
 
-   public Bound2 GetBound (Matrix2 xfm) 
-      => new Bound2 (Polys.SelectMany (a => a.Pts.Select (p => p * xfm)));
+   public Bound2 GetBound (Matrix2 xfm)
+      => new Bound2 (ConvexHull.Select (p => p * xfm));
 
    /// <summary>Enumerate all the lines in this drawing</summary>
    public IEnumerable<(Point2 A, Point2 B)> EnumLines (Matrix2 xfm) 
       => mPolys.SelectMany (a => a.EnumLines (xfm));
+}
+
+public static class Extensions {
+   /// <summary>Given a sequence, applies the selector to each successive pair and returns the results</summary>
+   public static IEnumerable<U> SelectPair<T, U> (this IEnumerable<T> src, Func<T, T, U> selector) {
+      bool first = true; T prev = default;
+      foreach (var item in src) {
+         if (!first) yield return selector (prev, item);
+         prev = item; first = false;
+      }
+   }
 }
